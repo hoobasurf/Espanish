@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Conversación · Conversation</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Lato:wght@300;400;700&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+–fr: #1a3a5c;
+–es: #8b1a1a;
+–fr-light: #e8f0f8;
+–es-light: #f8e8e8;
+–gold: #c9a84c;
+–bg: #f5f2eb;
+–text: #1a1a1a;
+}
+
+body {
+font-family: ‘Lato’, sans-serif;
+background: var(–bg);
+min-height: 100vh;
+display: flex;
+flex-direction: column;
+align-items: center;
+overflow-x: hidden;
+}
+
+/* Background texture */
+body::before {
+content: ‘’;
+position: fixed;
+inset: 0;
+background-image:
+repeating-linear-gradient(0deg, transparent, transparent 40px, rgba(0,0,0,0.015) 40px, rgba(0,0,0,0.015) 41px),
+repeating-linear-gradient(90deg, transparent, transparent 40px, rgba(0,0,0,0.015) 40px, rgba(0,0,0,0.015) 41px);
+pointer-events: none;
+z-index: 0;
+}
+
+header {
+width: 100%;
+padding: 2rem;
+text-align: center;
+position: relative;
+z-index: 1;
+border-bottom: 1px solid rgba(0,0,0,0.08);
+background: white;
+box-shadow: 0 2px 20px rgba(0,0,0,0.06);
+}
+
+header h1 {
+font-family: ‘Playfair Display’, serif;
+font-size: 2rem;
+letter-spacing: 0.02em;
+color: var(–text);
+}
+
+header h1 span.fr { color: var(–fr); }
+header h1 span.es { color: var(–es); }
+header h1 span.sep { color: var(–gold); margin: 0 0.5rem; font-style: italic; }
+
+header p {
+margin-top: 0.4rem;
+font-size: 0.85rem;
+color: #888;
+font-weight: 300;
+letter-spacing: 0.05em;
+}
+
+.main {
+display: flex;
+gap: 0;
+width: 100%;
+max-width: 1100px;
+margin: 2rem auto;
+padding: 0 1.5rem;
+position: relative;
+z-index: 1;
+flex: 1;
+}
+
+/* Two columns */
+.col {
+flex: 1;
+display: flex;
+flex-direction: column;
+gap: 1rem;
+}
+
+.col-divider {
+width: 2px;
+background: linear-gradient(to bottom, transparent, var(–gold), transparent);
+margin: 0 1.5rem;
+flex-shrink: 0;
+}
+
+.col-header {
+display: flex;
+align-items: center;
+gap: 0.7rem;
+padding-bottom: 0.8rem;
+border-bottom: 2px solid;
+}
+
+.col.fr .col-header { border-color: var(–fr); }
+.col.es .col-header { border-color: var(–es); }
+
+.flag {
+font-size: 1.8rem;
+line-height: 1;
+}
+
+.col-header h2 {
+font-family: ‘Playfair Display’, serif;
+font-size: 1.2rem;
+font-weight: 700;
+}
+
+.col.fr .col-header h2 { color: var(–fr); }
+.col.es .col-header h2 { color: var(–es); }
+
+.col-header .lang-label {
+font-size: 0.7rem;
+letter-spacing: 0.15em;
+text-transform: uppercase;
+color: #aaa;
+font-weight: 400;
+margin-left: auto;
+}
+
+/* Status indicator */
+.status-bar {
+display: flex;
+align-items: center;
+gap: 0.6rem;
+font-size: 0.82rem;
+color: #777;
+padding: 0.5rem 0.8rem;
+border-radius: 6px;
+background: white;
+border: 1px solid rgba(0,0,0,0.08);
+min-height: 36px;
+transition: all 0.3s ease;
+}
+
+.dot {
+width: 8px; height: 8px;
+border-radius: 50%;
+background: #ccc;
+flex-shrink: 0;
+transition: background 0.3s ease;
+}
+
+.dot.listening { background: #22c55e; animation: pulse-dot 1s infinite; }
+.dot.translating { background: var(–gold); animation: pulse-dot 0.5s infinite; }
+.dot.speaking { background: #3b82f6; animation: pulse-dot 0.8s infinite; }
+
+@keyframes pulse-dot {
+0%, 100% { transform: scale(1); opacity: 1; }
+50% { transform: scale(1.4); opacity: 0.7; }
+}
+
+/* Waveform */
+.waveform {
+height: 50px;
+display: flex;
+align-items: center;
+justify-content: center;
+gap: 3px;
+padding: 0 1rem;
+background: white;
+border-radius: 8px;
+border: 1px solid rgba(0,0,0,0.08);
+overflow: hidden;
+}
+
+.wave-bar {
+width: 3px;
+border-radius: 2px;
+background: #ddd;
+height: 8px;
+transition: height 0.1s ease, background 0.3s ease;
+}
+
+.col.fr .wave-bar.active { background: var(–fr); }
+.col.es .wave-bar.active { background: var(–es); }
+
+/* Transcript boxes */
+.transcript-box {
+background: white;
+border-radius: 10px;
+border: 1px solid rgba(0,0,0,0.08);
+padding: 1rem;
+min-height: 100px;
+flex: 1;
+box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+
+.transcript-box .label {
+font-size: 0.65rem;
+letter-spacing: 0.15em;
+text-transform: uppercase;
+color: #bbb;
+margin-bottom: 0.5rem;
+font-weight: 700;
+}
+
+.transcript-box .text {
+font-size: 1rem;
+line-height: 1.6;
+color: var(–text);
+min-height: 60px;
+font-style: italic;
+}
+
+.transcript-box .text.empty {
+color: #ccc;
+font-style: italic;
+font-size: 0.9rem;
+}
+
+/* Translation output */
+.translation-box {
+border-radius: 10px;
+padding: 1rem;
+border: 1px solid;
+box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+transition: all 0.3s ease;
+}
+
+.col.fr .translation-box {
+background: var(–fr-light);
+border-color: rgba(26,58,92,0.2);
+}
+
+.col.es .translation-box {
+background: var(–es-light);
+border-color: rgba(139,26,26,0.2);
+}
+
+.translation-box .label {
+font-size: 0.65rem;
+letter-spacing: 0.15em;
+text-transform: uppercase;
+margin-bottom: 0.5rem;
+font-weight: 700;
+}
+
+.col.fr .translation-box .label { color: var(–fr); }
+.col.es .translation-box .label { color: var(–es); }
+
+.translation-box .text {
+font-family: ‘Playfair Display’, serif;
+font-size: 1.05rem;
+line-height: 1.6;
+min-height: 60px;
+}
+
+.col.fr .translation-box .text { color: var(–fr); }
+.col.es .translation-box .text { color: var(–es); }
+
+/* Center start button */
+.center-panel {
+position: absolute;
+top: 50%;
+left: 50%;
+transform: translate(-50%, -50%);
+z-index: 10;
+display: flex;
+flex-direction: column;
+align-items: center;
+gap: 1rem;
+}
+
+#startBtn {
+width: 90px;
+height: 90px;
+border-radius: 50%;
+border: none;
+cursor: pointer;
+font-size: 2rem;
+display: flex;
+align-items: center;
+justify-content: center;
+background: white;
+box-shadow: 0 4px 24px rgba(0,0,0,0.15), 0 0 0 4px var(–gold);
+transition: all 0.3s ease;
+position: relative;
+}
+
+#startBtn:hover { transform: scale(1.08); box-shadow: 0 6px 30px rgba(0,0,0,0.2), 0 0 0 6px var(–gold); }
+#startBtn.active { box-shadow: 0 4px 24px rgba(0,0,0,0.15), 0 0 0 4px #ef4444; }
+
+#startBtn .btn-label {
+position: absolute;
+bottom: -28px;
+white-space: nowrap;
+font-size: 0.7rem;
+letter-spacing: 0.1em;
+text-transform: uppercase;
+color: #999;
+font-family: ‘Lato’, sans-serif;
+}
+
+/* Active language highlight */
+.col { transition: opacity 0.4s ease; }
+.col.inactive { opacity: 0.5; }
+
+/* History scroll */
+.history {
+max-height: 200px;
+overflow-y: auto;
+display: flex;
+flex-direction: column;
+gap: 0.5rem;
+padding-right: 4px;
+}
+
+.history::-webkit-scrollbar { width: 4px; }
+.history::-webkit-scrollbar-thumb { background: #ddd; border-radius: 2px; }
+
+.hist-item {
+background: #fafafa;
+border-radius: 6px;
+padding: 0.5rem 0.7rem;
+border-left: 3px solid;
+font-size: 0.82rem;
+line-height: 1.5;
+animation: fadeIn 0.4s ease;
+}
+
+@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+.hist-item.fr { border-color: var(–fr); }
+.hist-item.es { border-color: var(–es); }
+
+.hist-item .orig { color: #555; font-style: italic; }
+.hist-item .trans { color: #222; font-weight: 700; margin-top: 2px; }
+
+/* Info banner */
+.info-banner {
+position: fixed;
+top: 0; left: 0; right: 0;
+background: #fef3c7;
+border-bottom: 1px solid #f59e0b;
+padding: 0.5rem 1rem;
+font-size: 0.8rem;
+color: #92400e;
+text-align: center;
+z-index: 100;
+display: none;
+}
+
+/* Responsive */
+@media (max-width: 700px) {
+.main { flex-direction: column; }
+.col-divider { width: 100%; height: 2px; margin: 0; background: linear-gradient(to right, transparent, var(–gold), transparent); }
+.center-panel { position: static; transform: none; margin: 1rem auto; }
+}
+</style>
+
+</head>
+<body>
+
+<div class="info-banner" id="infoBanner">
+  ⚠️ La reconnaissance vocale nécessite Chrome ou Edge. Vérifiez que votre micro est autorisé.
+</div>
+
+<header>
+  <h1>
+    <span class="fr">🇫🇷 Français</span>
+    <span class="sep">⇄</span>
+    <span class="es">🇪🇸 Español</span>
+  </h1>
+  <p>Traduction automatique en temps réel · Traducción automática en tiempo real</p>
+</header>
+
+<div class="main" id="mainArea">
+
+  <!-- French column -->
+
+  <div class="col fr" id="colFr">
+    <div class="col-header">
+      <div class="flag">🇫🇷</div>
+      <h2>Français</h2>
+      <span class="lang-label">PROFESSEUR</span>
+    </div>
+
+```
+<div class="waveform" id="waveFr">
+  <!-- bars generated by JS -->
+</div>
+
+<div class="status-bar" id="statusFr">
+  <div class="dot" id="dotFr"></div>
+  <span id="statusTextFr">En attente…</span>
+</div>
+
+<div class="transcript-box">
+  <div class="label">Vous dites</div>
+  <div class="text empty" id="transcriptFr">Parlez en français…</div>
+</div>
+
+<div class="translation-box">
+  <div class="label">→ Traduction en espagnol</div>
+  <div class="text" id="translationToEs">—</div>
+</div>
+
+<div class="history" id="historyFr"></div>
+```
+
+  </div>
+
+  <!-- Center divider + button -->
+
+  <div style="position:relative; display:flex; flex-direction:column; align-items:center; justify-content:center; width:110px; flex-shrink:0;">
+    <div class="col-divider" style="position:absolute;top:0;bottom:0;left:50%;transform:translateX(-50%);width:2px;background:linear-gradient(to bottom, transparent, #c9a84c, transparent);"></div>
+    <button id="startBtn" title="Démarrer / Iniciar">
+      <span id="btnIcon">▶</span>
+      <span class="btn-label" id="btnLabel">DÉMARRER</span>
+    </button>
+  </div>
+
+  <!-- Spanish column -->
+
+  <div class="col es" id="colEs">
+    <div class="col-header">
+      <div class="flag">🇪🇸</div>
+      <h2>Español</h2>
+      <span class="lang-label">ESTUDIANTE</span>
+    </div>
+
+```
+<div class="waveform" id="waveEs">
+</div>
+
+<div class="status-bar" id="statusEs">
+  <div class="dot" id="dotEs"></div>
+  <span id="statusTextEs">Esperando…</span>
+</div>
+
+<div class="transcript-box">
+  <div class="label">El estudiante dice</div>
+  <div class="text empty" id="transcriptEs">Habla en español…</div>
+</div>
+
+<div class="translation-box">
+  <div class="label">→ Traduction en français</div>
+  <div class="text" id="translationToFr">—</div>
+</div>
+
+<div class="history" id="historyEs"></div>
+```
+
+  </div>
+
+</div>
+
+<script>
+// ============================================================
+// CONFIG
+// ============================================================
+const GOOGLE_TTS_AVAILABLE = typeof speechSynthesis !== 'undefined';
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+if (!SpeechRecognition) {
+  document.getElementById('infoBanner').style.display = 'block';
+}
+
+// ============================================================
+// WAVEFORMS
+// ============================================================
+function createWave(id, color) {
+  const el = document.getElementById(id);
+  const bars = [];
+  for (let i = 0; i < 30; i++) {
+    const b = document.createElement('div');
+    b.className = 'wave-bar';
+    el.appendChild(b);
+    bars.push(b);
+  }
+  return bars;
+}
+
+const waveBarsFr = createWave('waveFr', 'fr');
+const waveBarsEs = createWave('waveEs', 'es');
+
+function animateWave(bars, active) {
+  bars.forEach((b, i) => {
+    if (active) {
+      b.classList.add('active');
+      const h = Math.max(4, Math.random() * 40);
+      b.style.height = h + 'px';
+    } else {
+      b.classList.remove('active');
+      b.style.height = '8px';
+    }
+  });
+}
+
+let waveIntervalFr, waveIntervalEs;
+
+function startWave(lang) {
+  const bars = lang === 'fr' ? waveBarsFr : waveBarsEs;
+  const interval = setInterval(() => animateWave(bars, true), 100);
+  if (lang === 'fr') waveIntervalFr = interval;
+  else waveIntervalEs = interval;
+}
+
+function stopWave(lang) {
+  const bars = lang === 'fr' ? waveBarsFr : waveBarsEs;
+  clearInterval(lang === 'fr' ? waveIntervalFr : waveIntervalEs);
+  animateWave(bars, false);
+}
+
+// ============================================================
+// STATUS HELPERS
+// ============================================================
+function setStatus(lang, type, text) {
+  const dot = document.getElementById('dot' + (lang === 'fr' ? 'Fr' : 'Es'));
+  const statusText = document.getElementById('statusText' + (lang === 'fr' ? 'Fr' : 'Es'));
+  dot.className = 'dot ' + (type || '');
+  statusText.textContent = text;
+}
+
+function setActive(lang) {
+  document.getElementById('colFr').classList.toggle('inactive', lang === 'es');
+  document.getElementById('colEs').classList.toggle('inactive', lang === 'fr');
+}
+
+function resetActive() {
+  document.getElementById('colFr').classList.remove('inactive');
+  document.getElementById('colEs').classList.remove('inactive');
+}
+
+// ============================================================
+// TRANSLATION via MyMemory (free, no key required)
+// ============================================================
+async function translate(text, from, to) {
+  const pair = `${from}|${to}`;
+  const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${pair}`;
+  try {
+    const res = await fetch(url);
+    const data = await res.json();
+    if (data.responseStatus === 200) {
+      return data.responseData.translatedText;
+    }
+  } catch(e) {}
+  return '[Traduction indisponible]';
+}
+
+// ============================================================
+// TEXT TO SPEECH
+// ============================================================
+function speak(text, lang) {
+  return new Promise(resolve => {
+    if (!GOOGLE_TTS_AVAILABLE) { resolve(); return; }
+    speechSynthesis.cancel();
+    const utt = new SpeechSynthesisUtterance(text);
+    utt.lang = lang === 'fr' ? 'fr-FR' : 'es-ES';
+    utt.rate = 0.95;
+    utt.onend = resolve;
+    utt.onerror = resolve;
+    speechSynthesis.speak(utt);
+  });
+}
+
+// ============================================================
+// MAIN STATE MACHINE
+// ============================================================
+let running = false;
+let recognition = null;
+let silenceTimer = null;
+let isSpeaking = false;
+let currentLang = 'fr'; // alternate between fr and es
+
+const SILENCE_DELAY = 1800; // ms of silence before processing
+
+function startRecognition(lang) {
+  if (!SpeechRecognition) return;
+  
+  recognition = new SpeechRecognition();
+  recognition.lang = lang === 'fr' ? 'fr-FR' : 'es-ES';
+  recognition.continuous = true;
+  recognition.interimResults = true;
+
+  let finalTranscript = '';
+  let interimTranscript = '';
+
+  const transcriptEl = document.getElementById('transcript' + (lang === 'fr' ? 'Fr' : 'Es'));
+  
+  setStatus(lang, 'listening', lang === 'fr' ? '🎙 Écoute en français…' : '🎙 Escuchando en español…');
+  setActive(lang);
+  startWave(lang);
+  transcriptEl.classList.remove('empty');
+
+  recognition.onresult = (event) => {
+    interimTranscript = '';
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      if (event.results[i].isFinal) {
+        finalTranscript += event.results[i][0].transcript + ' ';
+      } else {
+        interimTranscript = event.results[i][0].transcript;
+      }
+    }
+
+    transcriptEl.textContent = (finalTranscript + interimTranscript).trim() || (lang === 'fr' ? 'Parlez en français…' : 'Habla en español…');
+    
+    // Reset silence timer on each word
+    clearTimeout(silenceTimer);
+    if (finalTranscript.trim()) {
+      silenceTimer = setTimeout(() => processAndSwitch(finalTranscript.trim(), lang), SILENCE_DELAY);
+    }
+  };
+
+  recognition.onerror = (e) => {
+    if (e.error === 'no-speech') {
+      // Just restart if no speech detected
+      if (running && !isSpeaking) {
+        recognition.stop();
+      }
+    }
+  };
+
+  recognition.onend = () => {
+    stopWave(lang);
+    // Will be restarted by processAndSwitch or automatically
+    if (running && !isSpeaking && !finalTranscript.trim()) {
+      // No speech captured, just restart same lang
+      setTimeout(() => startRecognition(lang), 300);
+    }
+  };
+
+  recognition.start();
+}
+
+async function processAndSwitch(text, spokenLang) {
+  if (!running) return;
+  isSpeaking = true;
+  clearTimeout(silenceTimer);
+  
+  try {
+    recognition.stop();
+  } catch(e) {}
+
+  stopWave(spokenLang);
+
+  const targetLang = spokenLang === 'fr' ? 'es' : 'fr';
+  const fromCode = spokenLang === 'fr' ? 'fr' : 'es';
+  const toCode = targetLang === 'fr' ? 'fr' : 'es';
+
+  // Show translating status
+  setStatus(spokenLang, 'translating', spokenLang === 'fr' ? '⚙ Traduction…' : '⚙ Traduciendo…');
+
+  const translated = await translate(text, fromCode, toCode);
+
+  // Update UI
+  if (spokenLang === 'fr') {
+    document.getElementById('translationToEs').textContent = translated;
+    addHistory('fr', text, translated);
+  } else {
+    document.getElementById('translationToFr').textContent = translated;
+    addHistory('es', text, translated);
+  }
+
+  // Speak the translation
+  setStatus(targetLang, 'speaking', targetLang === 'fr' ? '🔊 Lecture en français…' : '🔊 Leyendo en español…');
+  setActive(targetLang);
+
+  await speak(translated, targetLang);
+
+  // Reset UI
+  document.getElementById('transcript' + (spokenLang === 'fr' ? 'Fr' : 'Es')).textContent = '';
+  document.getElementById('transcript' + (spokenLang === 'fr' ? 'Fr' : 'Es')).classList.add('empty');
+  
+  setStatus(spokenLang, '', spokenLang === 'fr' ? 'En attente…' : 'Esperando…');
+  setStatus(targetLang, '', targetLang === 'fr' ? 'En attente…' : 'Esperando…');
+  resetActive();
+
+  isSpeaking = false;
+
+  // Now switch to the other language
+  if (running) {
+    const nextLang = targetLang; // After professor speaks → student listens, etc.
+    setTimeout(() => startRecognition(nextLang), 400);
+  }
+}
+
+function addHistory(spokenLang, original, translated) {
+  const histId = spokenLang === 'fr' ? 'historyFr' : 'historyEs';
+  const hist = document.getElementById(histId);
+  const item = document.createElement('div');
+  item.className = 'hist-item ' + spokenLang;
+  item.innerHTML = `<div class="orig">${escapeHtml(original)}</div><div class="trans">${escapeHtml(translated)}</div>`;
+  hist.prepend(item);
+  // Keep only last 10
+  while (hist.children.length > 10) hist.removeChild(hist.lastChild);
+}
+
+function escapeHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ============================================================
+// START / STOP
+// ============================================================
+const startBtn = document.getElementById('startBtn');
+const btnIcon = document.getElementById('btnIcon');
+const btnLabel = document.getElementById('btnLabel');
+
+startBtn.addEventListener('click', () => {
+  if (!running) {
+    start();
+  } else {
+    stop();
+  }
+});
+
+function start() {
+  if (!SpeechRecognition) {
+    document.getElementById('infoBanner').style.display = 'block';
+    return;
+  }
+  running = true;
+  startBtn.classList.add('active');
+  btnIcon.textContent = '⏹';
+  btnLabel.textContent = 'ARRÊTER';
+  
+  // Always start with French (professor)
+  currentLang = 'fr';
+  startRecognition('fr');
+}
+
+function stop() {
+  running = false;
+  isSpeaking = false;
+  clearTimeout(silenceTimer);
+  
+  try { recognition && recognition.stop(); } catch(e) {}
+  speechSynthesis && speechSynthesis.cancel();
+  
+  stopWave('fr');
+  stopWave('es');
+  
+  setStatus('fr', '', 'En attente…');
+  setStatus('es', '', 'Esperando…');
+  resetActive();
+
+  startBtn.classList.remove('active');
+  btnIcon.textContent = '▶';
+  btnLabel.textContent = 'DÉMARRER';
+}
+</script>
+
+</body>
+</html>
