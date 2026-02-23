@@ -4,757 +4,785 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Conversación · Conversation</title>
+<title>JARVIS · Translator</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Lato:wght@300;400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap');
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-–fr: #1a3a5c;
-–es: #8b1a1a;
-–fr-light: #e8f0f8;
-–es-light: #f8e8e8;
-–gold: #c9a84c;
-–bg: #f5f2eb;
-–text: #1a1a1a;
+–cyan: #00d4ff;
+–blue: #0066ff;
+–gold: #ffaa00;
+–red: #ff3333;
+–dark: #020810;
+–panel: rgba(0, 180, 255, 0.05);
+–border: rgba(0, 212, 255, 0.25);
+–glow: 0 0 20px rgba(0, 212, 255, 0.4);
 }
 
-body {
-font-family: ‘Lato’, sans-serif;
-background: var(–bg);
-min-height: 100vh;
+html, body {
+width: 100%; height: 100%;
+background: var(–dark);
+overflow: hidden;
+font-family: ‘Share Tech Mono’, monospace;
+color: var(–cyan);
+user-select: none;
+}
+
+/* Animated grid background */
+body::before {
+content: ‘’;
+position: fixed; inset: 0;
+background-image:
+linear-gradient(rgba(0,212,255,0.04) 1px, transparent 1px),
+linear-gradient(90deg, rgba(0,212,255,0.04) 1px, transparent 1px);
+background-size: 40px 40px;
+animation: gridMove 20s linear infinite;
+pointer-events: none;
+}
+
+@keyframes gridMove {
+from { background-position: 0 0; }
+to { background-position: 40px 40px; }
+}
+
+body::after {
+content: ‘’;
+position: fixed; inset: 0;
+background: radial-gradient(ellipse at center, transparent 30%, rgba(2,8,16,0.8) 100%);
+pointer-events: none;
+}
+
+/* –– MAIN LAYOUT –– */
+.app {
+position: relative;
+width: 100vw; height: 100vh;
 display: flex;
 flex-direction: column;
 align-items: center;
-overflow-x: hidden;
-}
-
-/* Background texture */
-body::before {
-content: ‘’;
-position: fixed;
-inset: 0;
-background-image:
-repeating-linear-gradient(0deg, transparent, transparent 40px, rgba(0,0,0,0.015) 40px, rgba(0,0,0,0.015) 41px),
-repeating-linear-gradient(90deg, transparent, transparent 40px, rgba(0,0,0,0.015) 40px, rgba(0,0,0,0.015) 41px);
-pointer-events: none;
-z-index: 0;
-}
-
-header {
-width: 100%;
-padding: 2rem;
-text-align: center;
-position: relative;
-z-index: 1;
-border-bottom: 1px solid rgba(0,0,0,0.08);
-background: white;
-box-shadow: 0 2px 20px rgba(0,0,0,0.06);
-}
-
-header h1 {
-font-family: ‘Playfair Display’, serif;
-font-size: 2rem;
-letter-spacing: 0.02em;
-color: var(–text);
-}
-
-header h1 span.fr { color: var(–fr); }
-header h1 span.es { color: var(–es); }
-header h1 span.sep { color: var(–gold); margin: 0 0.5rem; font-style: italic; }
-
-header p {
-margin-top: 0.4rem;
-font-size: 0.85rem;
-color: #888;
-font-weight: 300;
-letter-spacing: 0.05em;
-}
-
-.main {
-display: flex;
+justify-content: center;
 gap: 0;
-width: 100%;
-max-width: 1100px;
-margin: 2rem auto;
-padding: 0 1.5rem;
-position: relative;
 z-index: 1;
-flex: 1;
 }
 
-/* Two columns */
-.col {
-flex: 1;
+/* –– TOP HUD –– */
+.hud-top {
+position: absolute;
+top: 0; left: 0; right: 0;
+padding: 1.2rem 2rem;
 display: flex;
-flex-direction: column;
-gap: 1rem;
+align-items: center;
+justify-content: space-between;
+border-bottom: 1px solid var(–border);
+background: linear-gradient(to bottom, rgba(0,212,255,0.06), transparent);
 }
 
-.col-divider {
-width: 2px;
-background: linear-gradient(to bottom, transparent, var(–gold), transparent);
-margin: 0 1.5rem;
+.hud-title {
+font-family: ‘Orbitron’, sans-serif;
+font-size: 1.1rem;
+font-weight: 900;
+letter-spacing: 0.3em;
+text-transform: uppercase;
+color: var(–cyan);
+text-shadow: var(–glow);
+}
+
+.hud-title span { color: var(–gold); }
+
+.hud-meta {
+font-size: 0.65rem;
+letter-spacing: 0.15em;
+color: rgba(0,212,255,0.4);
+}
+
+.hud-status {
+font-size: 0.7rem;
+letter-spacing: 0.1em;
+color: var(–gold);
+display: flex;
+align-items: center;
+gap: 0.5rem;
+}
+
+.corner-dot {
+width: 6px; height: 6px;
+border-radius: 50%;
+background: var(–gold);
+animation: blink 2s infinite;
+}
+
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+/* –– CORNER DECORATIONS –– */
+.corner {
+position: absolute;
+width: 30px; height: 30px;
+border-color: var(–cyan);
+border-style: solid;
+opacity: 0.4;
+}
+.corner.tl { top: 8px; left: 8px; border-width: 2px 0 0 2px; }
+.corner.tr { top: 8px; right: 8px; border-width: 2px 2px 0 0; }
+.corner.bl { bottom: 8px; left: 8px; border-width: 0 0 2px 2px; }
+.corner.br { bottom: 8px; right: 8px; border-width: 0 2px 2px 0; }
+
+/* –– CENTER CIRCLE –– */
+.center-ring {
+position: relative;
+width: 220px; height: 220px;
 flex-shrink: 0;
 }
 
-.col-header {
+.ring {
+position: absolute;
+border-radius: 50%;
+border-style: solid;
+border-color: transparent;
+}
+
+.ring-1 {
+inset: 0;
+border-width: 2px;
+border-top-color: var(–cyan);
+border-right-color: var(–cyan);
+animation: spin 3s linear infinite;
+box-shadow: 0 0 15px rgba(0,212,255,0.3);
+}
+
+.ring-2 {
+inset: 10px;
+border-width: 1px;
+border-bottom-color: rgba(0,212,255,0.5);
+border-left-color: rgba(0,212,255,0.5);
+animation: spin 5s linear infinite reverse;
+}
+
+.ring-3 {
+inset: 20px;
+border-width: 1px;
+border-top-color: var(–gold);
+border-right-color: var(–gold);
+animation: spin 7s linear infinite;
+opacity: 0.6;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.ring-inner {
+position: absolute;
+inset: 35px;
+border-radius: 50%;
+background: radial-gradient(circle, rgba(0,100,200,0.15) 0%, rgba(0,212,255,0.05) 60%, transparent 100%);
+border: 1px solid var(–border);
 display: flex;
 align-items: center;
-gap: 0.7rem;
-padding-bottom: 0.8rem;
-border-bottom: 2px solid;
-}
-
-.col.fr .col-header { border-color: var(–fr); }
-.col.es .col-header { border-color: var(–es); }
-
-.flag {
-font-size: 1.8rem;
-line-height: 1;
-}
-
-.col-header h2 {
-font-family: ‘Playfair Display’, serif;
-font-size: 1.2rem;
-font-weight: 700;
-}
-
-.col.fr .col-header h2 { color: var(–fr); }
-.col.es .col-header h2 { color: var(–es); }
-
-.col-header .lang-label {
-font-size: 0.7rem;
-letter-spacing: 0.15em;
-text-transform: uppercase;
-color: #aaa;
-font-weight: 400;
-margin-left: auto;
-}
-
-/* Status indicator */
-.status-bar {
-display: flex;
-align-items: center;
-gap: 0.6rem;
-font-size: 0.82rem;
-color: #777;
-padding: 0.5rem 0.8rem;
-border-radius: 6px;
-background: white;
-border: 1px solid rgba(0,0,0,0.08);
-min-height: 36px;
+justify-content: center;
+flex-direction: column;
+gap: 4px;
+cursor: pointer;
 transition: all 0.3s ease;
 }
 
-.dot {
-width: 8px; height: 8px;
+.ring-inner:hover { background: radial-gradient(circle, rgba(0,150,255,0.25) 0%, rgba(0,212,255,0.1) 60%, transparent 100%); }
+
+.ring-inner.active {
+background: radial-gradient(circle, rgba(0,212,255,0.2) 0%, rgba(0,100,255,0.1) 60%, transparent 100%);
+box-shadow: 0 0 30px rgba(0,212,255,0.3) inset;
+}
+
+.ring-inner.active-voice {
+background: radial-gradient(circle, rgba(255,170,0,0.2) 0%, rgba(0,212,255,0.1) 60%, transparent 100%);
+}
+
+#powerIcon {
+font-size: 2rem;
+line-height: 1;
+transition: all 0.3s;
+}
+
+#powerLabel {
+font-family: ‘Orbitron’, sans-serif;
+font-size: 0.55rem;
+letter-spacing: 0.2em;
+color: rgba(0,212,255,0.6);
+text-align: center;
+}
+
+/* Pulse when listening */
+.pulse-ring {
+position: absolute;
+inset: 0;
 border-radius: 50%;
-background: #ccc;
-flex-shrink: 0;
-transition: background 0.3s ease;
+border: 2px solid var(–cyan);
+opacity: 0;
+animation: none;
 }
 
-.dot.listening { background: #22c55e; animation: pulse-dot 1s infinite; }
-.dot.translating { background: var(–gold); animation: pulse-dot 0.5s infinite; }
-.dot.speaking { background: #3b82f6; animation: pulse-dot 0.8s infinite; }
-
-@keyframes pulse-dot {
-0%, 100% { transform: scale(1); opacity: 1; }
-50% { transform: scale(1.4); opacity: 0.7; }
+.listening .pulse-ring {
+animation: pulseOut 1.5s ease-out infinite;
 }
 
-/* Waveform */
-.waveform {
-height: 50px;
+@keyframes pulseOut {
+0% { transform: scale(1); opacity: 0.6; }
+100% { transform: scale(1.4); opacity: 0; }
+}
+
+/* –– WAVEFORM –– */
+.waveform-container {
 display: flex;
 align-items: center;
 justify-content: center;
 gap: 3px;
-padding: 0 1rem;
-background: white;
-border-radius: 8px;
-border: 1px solid rgba(0,0,0,0.08);
+height: 50px;
+width: 100%;
+max-width: 400px;
+}
+
+.wbar {
+width: 3px;
+background: var(–cyan);
+border-radius: 2px;
+height: 4px;
+transition: height 0.08s ease;
+opacity: 0.7;
+}
+
+/* –– TEXT PANELS –– */
+.panels {
+display: flex;
+gap: 2rem;
+width: 100%;
+max-width: 900px;
+padding: 0 2rem;
+}
+
+.panel {
+flex: 1;
+background: var(–panel);
+border: 1px solid var(–border);
+border-radius: 4px;
+padding: 1rem 1.2rem;
+position: relative;
+overflow: hidden;
+min-height: 120px;
+}
+
+.panel::before {
+content: ‘’;
+position: absolute;
+top: 0; left: 0; right: 0;
+height: 2px;
+background: linear-gradient(to right, transparent, var(–cyan), transparent);
+opacity: 0.5;
+}
+
+.panel.highlight::before { opacity: 1; animation: scanLine 1s ease infinite; }
+
+@keyframes scanLine {
+0%,100% { opacity: 0.3; } 50% { opacity: 1; }
+}
+
+.panel-lang {
+font-family: ‘Orbitron’, sans-serif;
+font-size: 0.6rem;
+letter-spacing: 0.25em;
+color: rgba(0,212,255,0.5);
+margin-bottom: 0.6rem;
+display: flex;
+align-items: center;
+gap: 0.5rem;
+}
+
+.panel-lang .flag { font-size: 1rem; }
+.panel-lang .lang-name { color: var(–cyan); font-size: 0.65rem; }
+
+.panel-original {
+font-size: 0.82rem;
+color: rgba(0,212,255,0.6);
+min-height: 2em;
+font-style: italic;
+margin-bottom: 0.6rem;
+letter-spacing: 0.03em;
+line-height: 1.5;
+}
+
+.panel-translation {
+font-family: ‘Orbitron’, sans-serif;
+font-size: 0.85rem;
+color: var(–gold);
+min-height: 2em;
+letter-spacing: 0.05em;
+line-height: 1.5;
+text-shadow: 0 0 10px rgba(255,170,0,0.4);
+}
+
+/* –– BOTTOM STATUS –– */
+.status-line {
+display: flex;
+align-items: center;
+gap: 0.8rem;
+font-size: 0.7rem;
+letter-spacing: 0.12em;
+color: rgba(0,212,255,0.5);
+height: 30px;
+}
+
+#mainStatus { color: var(–cyan); text-shadow: 0 0 8px rgba(0,212,255,0.5); }
+
+/* –– HISTORY –– */
+.history-strip {
+width: 100%;
+max-width: 900px;
+padding: 0 2rem;
+display: flex;
+flex-direction: column;
+gap: 4px;
+max-height: 100px;
 overflow: hidden;
 }
 
-.wave-bar {
-width: 3px;
-border-radius: 2px;
-background: #ddd;
-height: 8px;
-transition: height 0.1s ease, background 0.3s ease;
-}
-
-.col.fr .wave-bar.active { background: var(–fr); }
-.col.es .wave-bar.active { background: var(–es); }
-
-/* Transcript boxes */
-.transcript-box {
-background: white;
-border-radius: 10px;
-border: 1px solid rgba(0,0,0,0.08);
-padding: 1rem;
-min-height: 100px;
-flex: 1;
-box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-}
-
-.transcript-box .label {
+.hist-entry {
 font-size: 0.65rem;
-letter-spacing: 0.15em;
-text-transform: uppercase;
-color: #bbb;
-margin-bottom: 0.5rem;
-font-weight: 700;
-}
-
-.transcript-box .text {
-font-size: 1rem;
-line-height: 1.6;
-color: var(–text);
-min-height: 60px;
-font-style: italic;
-}
-
-.transcript-box .text.empty {
-color: #ccc;
-font-style: italic;
-font-size: 0.9rem;
-}
-
-/* Translation output */
-.translation-box {
-border-radius: 10px;
-padding: 1rem;
-border: 1px solid;
-box-shadow: 0 2px 12px rgba(0,0,0,0.06);
-transition: all 0.3s ease;
-}
-
-.col.fr .translation-box {
-background: var(–fr-light);
-border-color: rgba(26,58,92,0.2);
-}
-
-.col.es .translation-box {
-background: var(–es-light);
-border-color: rgba(139,26,26,0.2);
-}
-
-.translation-box .label {
-font-size: 0.65rem;
-letter-spacing: 0.15em;
-text-transform: uppercase;
-margin-bottom: 0.5rem;
-font-weight: 700;
-}
-
-.col.fr .translation-box .label { color: var(–fr); }
-.col.es .translation-box .label { color: var(–es); }
-
-.translation-box .text {
-font-family: ‘Playfair Display’, serif;
-font-size: 1.05rem;
-line-height: 1.6;
-min-height: 60px;
-}
-
-.col.fr .translation-box .text { color: var(–fr); }
-.col.es .translation-box .text { color: var(–es); }
-
-/* Center start button */
-.center-panel {
-position: absolute;
-top: 50%;
-left: 50%;
-transform: translate(-50%, -50%);
-z-index: 10;
-display: flex;
-flex-direction: column;
-align-items: center;
-gap: 1rem;
-}
-
-#startBtn {
-width: 90px;
-height: 90px;
-border-radius: 50%;
-border: none;
-cursor: pointer;
-font-size: 2rem;
-display: flex;
-align-items: center;
-justify-content: center;
-background: white;
-box-shadow: 0 4px 24px rgba(0,0,0,0.15), 0 0 0 4px var(–gold);
-transition: all 0.3s ease;
-position: relative;
-}
-
-#startBtn:hover { transform: scale(1.08); box-shadow: 0 6px 30px rgba(0,0,0,0.2), 0 0 0 6px var(–gold); }
-#startBtn.active { box-shadow: 0 4px 24px rgba(0,0,0,0.15), 0 0 0 4px #ef4444; }
-
-#startBtn .btn-label {
-position: absolute;
-bottom: -28px;
+color: rgba(0,212,255,0.3);
+letter-spacing: 0.05em;
 white-space: nowrap;
-font-size: 0.7rem;
-letter-spacing: 0.1em;
-text-transform: uppercase;
-color: #999;
-font-family: ‘Lato’, sans-serif;
+overflow: hidden;
+text-overflow: ellipsis;
+animation: slideIn 0.3s ease;
+display: flex;
+gap: 0.5rem;
 }
 
-/* Active language highlight */
-.col { transition: opacity 0.4s ease; }
-.col.inactive { opacity: 0.5; }
+@keyframes slideIn { from { opacity:0; transform: translateX(-10px); } to { opacity:1; transform: none; } }
 
-/* History scroll */
-.history {
-max-height: 200px;
-overflow-y: auto;
+.hist-entry .flag { flex-shrink: 0; }
+.hist-entry .orig { color: rgba(0,212,255,0.35); flex-shrink: 0; max-width: 40%; overflow: hidden; text-overflow: ellipsis; }
+.hist-entry .arrow { color: var(–gold); opacity: 0.4; flex-shrink: 0; }
+.hist-entry .trans { color: rgba(255,170,0,0.4); overflow: hidden; text-overflow: ellipsis; }
+
+/* –– DECORATIVE SIDE BARS –– */
+.side-bar {
+position: absolute;
+top: 15%;
+bottom: 15%;
+width: 2px;
 display: flex;
 flex-direction: column;
-gap: 0.5rem;
-padding-right: 4px;
+gap: 4px;
+overflow: hidden;
 }
 
-.history::-webkit-scrollbar { width: 4px; }
-.history::-webkit-scrollbar-thumb { background: #ddd; border-radius: 2px; }
+.side-bar.left { left: 20px; }
+.side-bar.right { right: 20px; }
 
-.hist-item {
-background: #fafafa;
-border-radius: 6px;
-padding: 0.5rem 0.7rem;
-border-left: 3px solid;
-font-size: 0.82rem;
-line-height: 1.5;
-animation: fadeIn 0.4s ease;
+.side-seg {
+flex: 1;
+background: var(–border);
+border-radius: 1px;
 }
 
-@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.side-seg:nth-child(2) { flex: 3; background: rgba(0,212,255,0.15); }
+.side-seg:nth-child(4) { flex: 2; background: rgba(0,212,255,0.1); }
 
-.hist-item.fr { border-color: var(–fr); }
-.hist-item.es { border-color: var(–es); }
-
-.hist-item .orig { color: #555; font-style: italic; }
-.hist-item .trans { color: #222; font-weight: 700; margin-top: 2px; }
-
-/* Info banner */
-.info-banner {
-position: fixed;
-top: 0; left: 0; right: 0;
-background: #fef3c7;
-border-bottom: 1px solid #f59e0b;
-padding: 0.5rem 1rem;
-font-size: 0.8rem;
-color: #92400e;
-text-align: center;
-z-index: 100;
-display: none;
+/* scanning animation on side bars */
+.side-bar::after {
+content: ‘’;
+position: absolute;
+top: -10%;
+left: 0; right: 0;
+height: 30%;
+background: linear-gradient(to bottom, transparent, rgba(0,212,255,0.4), transparent);
+animation: scanBar 4s linear infinite;
 }
 
-/* Responsive */
-@media (max-width: 700px) {
-.main { flex-direction: column; }
-.col-divider { width: 100%; height: 2px; margin: 0; background: linear-gradient(to right, transparent, var(–gold), transparent); }
-.center-panel { position: static; transform: none; margin: 1rem auto; }
+.side-bar.right::after { animation-delay: 2s; }
+
+@keyframes scanBar { from { top: -30%; } to { top: 110%; } }
+
+/* –– BOTTOM HUD –– */
+.hud-bottom {
+position: absolute;
+bottom: 0; left: 0; right: 0;
+padding: 0.8rem 2rem;
+border-top: 1px solid var(–border);
+background: linear-gradient(to top, rgba(0,212,255,0.04), transparent);
+display: flex;
+align-items: center;
+justify-content: space-between;
+font-size: 0.6rem;
+letter-spacing: 0.12em;
+color: rgba(0,212,255,0.25);
 }
+
+/* Countdown / conversation counter */
+#convCount {
+font-family: ‘Orbitron’, sans-serif;
+font-size: 1.4rem;
+font-weight: 900;
+color: rgba(0,212,255,0.2);
+letter-spacing: 0.1em;
+position: absolute;
+top: 50%; right: 2rem;
+transform: translateY(-50%);
+}
+
 </style>
-
 </head>
 <body>
 
-<div class="info-banner" id="infoBanner">
-  ⚠️ La reconnaissance vocale nécessite Chrome ou Edge. Vérifiez que votre micro est autorisé.
-</div>
+<div class="app">
 
-<header>
-  <h1>
-    <span class="fr">🇫🇷 Français</span>
-    <span class="sep">⇄</span>
-    <span class="es">🇪🇸 Español</span>
-  </h1>
-  <p>Traduction automatique en temps réel · Traducción automática en tiempo real</p>
-</header>
+  <!-- Corners -->
 
-<div class="main" id="mainArea">
+  <div class="corner tl"></div>
+  <div class="corner tr"></div>
+  <div class="corner bl"></div>
+  <div class="corner br"></div>
 
-  <!-- French column -->
+  <!-- Side decorations -->
 
-  <div class="col fr" id="colFr">
-    <div class="col-header">
-      <div class="flag">🇫🇷</div>
-      <h2>Français</h2>
-      <span class="lang-label">PROFESSEUR</span>
-    </div>
-
-```
-<div class="waveform" id="waveFr">
-  <!-- bars generated by JS -->
-</div>
-
-<div class="status-bar" id="statusFr">
-  <div class="dot" id="dotFr"></div>
-  <span id="statusTextFr">En attente…</span>
-</div>
-
-<div class="transcript-box">
-  <div class="label">Vous dites</div>
-  <div class="text empty" id="transcriptFr">Parlez en français…</div>
-</div>
-
-<div class="translation-box">
-  <div class="label">→ Traduction en espagnol</div>
-  <div class="text" id="translationToEs">—</div>
-</div>
-
-<div class="history" id="historyFr"></div>
-```
-
+  <div class="side-bar left">
+    <div class="side-seg"></div><div class="side-seg"></div>
+    <div class="side-seg"></div><div class="side-seg"></div>
+    <div class="side-seg"></div>
+  </div>
+  <div class="side-bar right">
+    <div class="side-seg"></div><div class="side-seg"></div>
+    <div class="side-seg"></div><div class="side-seg"></div>
+    <div class="side-seg"></div>
   </div>
 
-  <!-- Center divider + button -->
+  <!-- Top HUD -->
 
-  <div style="position:relative; display:flex; flex-direction:column; align-items:center; justify-content:center; width:110px; flex-shrink:0;">
-    <div class="col-divider" style="position:absolute;top:0;bottom:0;left:50%;transform:translateX(-50%);width:2px;background:linear-gradient(to bottom, transparent, #c9a84c, transparent);"></div>
-    <button id="startBtn" title="Démarrer / Iniciar">
-      <span id="btnIcon">▶</span>
-      <span class="btn-label" id="btnLabel">DÉMARRER</span>
-    </button>
+  <div class="hud-top">
+    <div class="hud-title">JARVIS <span>TRANSLATOR</span></div>
+    <div class="hud-meta">FR ⇄ ES · AUTO-DETECT · v2.0</div>
+    <div class="hud-status">
+      <div class="corner-dot"></div>
+      <span id="sysStatus">SYSTÈME PRÊT</span>
+    </div>
   </div>
 
-  <!-- Spanish column -->
+  <!-- Waveform -->
 
-  <div class="col es" id="colEs">
-    <div class="col-header">
-      <div class="flag">🇪🇸</div>
-      <h2>Español</h2>
-      <span class="lang-label">ESTUDIANTE</span>
+  <div class="waveform-container" id="waveform"></div>
+
+  <!-- Two panels -->
+
+  <div class="panels">
+    <div class="panel" id="panelFr">
+      <div class="panel-lang"><span class="flag">🇫🇷</span><span class="lang-name">FRANÇAIS</span></div>
+      <div class="panel-original" id="origFr">—</div>
+      <div class="panel-translation" id="transFr">—</div>
     </div>
+    <div class="panel" id="panelEs">
+      <div class="panel-lang"><span class="flag">🇪🇸</span><span class="lang-name">ESPAÑOL</span></div>
+      <div class="panel-original" id="origEs">—</div>
+      <div class="panel-translation" id="transEs">—</div>
+    </div>
+  </div>
 
-```
-<div class="waveform" id="waveEs">
-</div>
+  <!-- Center ring -->
 
-<div class="status-bar" id="statusEs">
-  <div class="dot" id="dotEs"></div>
-  <span id="statusTextEs">Esperando…</span>
-</div>
+  <div class="center-ring" id="centerRing">
+    <div class="pulse-ring"></div>
+    <div class="ring ring-1"></div>
+    <div class="ring ring-2"></div>
+    <div class="ring ring-3"></div>
+    <div class="ring-inner" id="powerBtn">
+      <div id="powerIcon">⏻</div>
+      <div id="powerLabel">DÉMARRER</div>
+    </div>
+  </div>
 
-<div class="transcript-box">
-  <div class="label">El estudiante dice</div>
-  <div class="text empty" id="transcriptEs">Habla en español…</div>
-</div>
+  <!-- Status line -->
 
-<div class="translation-box">
-  <div class="label">→ Traduction en français</div>
-  <div class="text" id="translationToFr">—</div>
-</div>
+  <div class="status-line">
+    <span id="mainStatus">EN ATTENTE D'ACTIVATION</span>
+  </div>
 
-<div class="history" id="historyEs"></div>
-```
+  <!-- History -->
 
+  <div class="history-strip" id="historyStrip"></div>
+
+  <!-- Bottom HUD -->
+
+  <div class="hud-bottom">
+    <span>ANTHROPIC NEURAL TRANSLATION UNIT</span>
+    <span>MYMEMORY API · SPEECH ENGINE v3</span>
+    <span id="convCount">00</span>
   </div>
 
 </div>
 
 <script>
-// ============================================================
-// CONFIG
-// ============================================================
-const GOOGLE_TTS_AVAILABLE = typeof speechSynthesis !== 'undefined';
+// ============ WAVEFORM ============
+const waveformEl = document.getElementById('waveform');
+const wbars = [];
+for (let i = 0; i < 48; i++) {
+  const b = document.createElement('div');
+  b.className = 'wbar';
+  waveformEl.appendChild(b);
+  wbars.push(b);
+}
+
+let waveActive = false;
+let waveInterval;
+
+function startWave() {
+  waveActive = true;
+  waveInterval = setInterval(() => {
+    wbars.forEach((b, i) => {
+      const h = waveActive ? Math.max(3, Math.sin(Date.now()/200 + i*0.4) * 18 + Math.random()*20) : 4;
+      b.style.height = h + 'px';
+      b.style.opacity = waveActive ? 0.7 + Math.random()*0.3 : 0.2;
+    });
+  }, 60);
+}
+
+function stopWave() {
+  waveActive = false;
+  setTimeout(() => {
+    wbars.forEach(b => { b.style.height = '4px'; b.style.opacity = '0.15'; });
+  }, 200);
+}
+
+// ============ STATE ============
+let running = false;
+let recognizing = false;
+let speaking = false;
+let recognition = null;
+let silenceTimer = null;
+let convCount = 0;
+
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
-if (!SpeechRecognition) {
-  document.getElementById('infoBanner').style.display = 'block';
+// ============ UI HELPERS ============
+function setStatus(msg) {
+  document.getElementById('mainStatus').textContent = msg;
 }
 
-// ============================================================
-// WAVEFORMS
-// ============================================================
-function createWave(id, color) {
+function setSysStatus(msg) {
+  document.getElementById('sysStatus').textContent = msg;
+}
+
+function setListeningUI(on) {
+  const ring = document.getElementById('centerRing');
+  const inner = document.getElementById('powerBtn');
+  ring.classList.toggle('listening', on);
+  inner.classList.toggle('active-voice', on);
+  if (on) startWave(); else stopWave();
+}
+
+function flashPanel(lang) {
+  const id = lang === 'fr' ? 'panelFr' : 'panelEs';
   const el = document.getElementById(id);
-  const bars = [];
-  for (let i = 0; i < 30; i++) {
-    const b = document.createElement('div');
-    b.className = 'wave-bar';
-    el.appendChild(b);
-    bars.push(b);
-  }
-  return bars;
+  el.classList.add('highlight');
+  setTimeout(() => el.classList.remove('highlight'), 2000);
 }
 
-const waveBarsFr = createWave('waveFr', 'fr');
-const waveBarsEs = createWave('waveEs', 'es');
-
-function animateWave(bars, active) {
-  bars.forEach((b, i) => {
-    if (active) {
-      b.classList.add('active');
-      const h = Math.max(4, Math.random() * 40);
-      b.style.height = h + 'px';
-    } else {
-      b.classList.remove('active');
-      b.style.height = '8px';
-    }
+// ============ DETECTION DE LANGUE ============
+// Detect if text is Spanish or French using simple heuristics
+function detectLang(text) {
+  const t = text.toLowerCase();
+  
+  // Spanish markers
+  const esWords = ['el','la','los','las','un','una','que','de','en','con','por','para','como','esto','eso','también','pero','más','muy','bien','hola','gracias','sí','no','qué','cómo','cuándo','dónde','quién','tengo','tiene','estoy','está','voy','va','yo','tú','él','ella','nosotros','ellos','ser','estar','hacer','tener','poder','querer'];
+  const frWords = ['le','la','les','un','une','des','que','de','en','avec','pour','comme','aussi','mais','plus','très','bien','bonjour','merci','oui','non','je','tu','il','elle','nous','vous','ils','elles','être','avoir','faire','aller','vouloir','pouvoir','comment','quand','où','qui','quoi'];
+  
+  const words = t.split(/\s+/);
+  let esScore = 0, frScore = 0;
+  
+  words.forEach(w => {
+    const clean = w.replace(/[^a-záéíóúàâèêîôùûç]/g, '');
+    if (esWords.includes(clean)) esScore++;
+    if (frWords.includes(clean)) frScore++;
   });
+
+  // Spanish-specific characters
+  if (/[¿¡ñ]/.test(t)) esScore += 3;
+  if (/[àâèêîôùûœæ]/.test(t)) frScore += 3;
+
+  return esScore > frScore ? 'es' : 'fr';
 }
 
-let waveIntervalFr, waveIntervalEs;
-
-function startWave(lang) {
-  const bars = lang === 'fr' ? waveBarsFr : waveBarsEs;
-  const interval = setInterval(() => animateWave(bars, true), 100);
-  if (lang === 'fr') waveIntervalFr = interval;
-  else waveIntervalEs = interval;
-}
-
-function stopWave(lang) {
-  const bars = lang === 'fr' ? waveBarsFr : waveBarsEs;
-  clearInterval(lang === 'fr' ? waveIntervalFr : waveIntervalEs);
-  animateWave(bars, false);
-}
-
-// ============================================================
-// STATUS HELPERS
-// ============================================================
-function setStatus(lang, type, text) {
-  const dot = document.getElementById('dot' + (lang === 'fr' ? 'Fr' : 'Es'));
-  const statusText = document.getElementById('statusText' + (lang === 'fr' ? 'Fr' : 'Es'));
-  dot.className = 'dot ' + (type || '');
-  statusText.textContent = text;
-}
-
-function setActive(lang) {
-  document.getElementById('colFr').classList.toggle('inactive', lang === 'es');
-  document.getElementById('colEs').classList.toggle('inactive', lang === 'fr');
-}
-
-function resetActive() {
-  document.getElementById('colFr').classList.remove('inactive');
-  document.getElementById('colEs').classList.remove('inactive');
-}
-
-// ============================================================
-// TRANSLATION via MyMemory (free, no key required)
-// ============================================================
+// ============ TRANSLATION ============
 async function translate(text, from, to) {
-  const pair = `${from}|${to}`;
-  const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${pair}`;
+  const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${from}|${to}`;
   try {
     const res = await fetch(url);
     const data = await res.json();
-    if (data.responseStatus === 200) {
-      return data.responseData.translatedText;
-    }
+    if (data.responseStatus === 200) return data.responseData.translatedText;
   } catch(e) {}
-  return '[Traduction indisponible]';
+  return '[ERREUR DE TRADUCTION]';
 }
 
-// ============================================================
-// TEXT TO SPEECH
-// ============================================================
+// ============ TTS ============
 function speak(text, lang) {
   return new Promise(resolve => {
-    if (!GOOGLE_TTS_AVAILABLE) { resolve(); return; }
+    if (!speechSynthesis) { resolve(); return; }
     speechSynthesis.cancel();
     const utt = new SpeechSynthesisUtterance(text);
     utt.lang = lang === 'fr' ? 'fr-FR' : 'es-ES';
     utt.rate = 0.95;
+    utt.pitch = 1;
     utt.onend = resolve;
     utt.onerror = resolve;
     speechSynthesis.speak(utt);
   });
 }
 
-// ============================================================
-// MAIN STATE MACHINE
-// ============================================================
-let running = false;
-let recognition = null;
-let silenceTimer = null;
-let isSpeaking = false;
-let currentLang = 'fr'; // alternate between fr and es
-
-const SILENCE_DELAY = 1800; // ms of silence before processing
-
-function startRecognition(lang) {
-  if (!SpeechRecognition) return;
+// ============ HISTORY ============
+function addHistory(flag, orig, trans) {
+  convCount++;
+  document.getElementById('convCount').textContent = String(convCount).padStart(2, '0');
   
+  const strip = document.getElementById('historyStrip');
+  const item = document.createElement('div');
+  item.className = 'hist-entry';
+  item.innerHTML = `<span class="flag">${flag}</span><span class="orig">${escapeHtml(orig)}</span><span class="arrow">→</span><span class="trans">${escapeHtml(trans)}</span>`;
+  strip.prepend(item);
+  while (strip.children.length > 4) strip.removeChild(strip.lastChild);
+}
+
+function escapeHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ============ CORE RECOGNITION LOOP ============
+function startListening() {
+  if (!SpeechRecognition || !running || speaking) return;
+
   recognition = new SpeechRecognition();
-  recognition.lang = lang === 'fr' ? 'fr-FR' : 'es-ES';
-  recognition.continuous = true;
+  recognition.lang = 'fr-FR'; // base lang — we detect after
+  recognition.continuous = false;
   recognition.interimResults = true;
+  recognition.maxAlternatives = 1;
 
-  let finalTranscript = '';
-  let interimTranscript = '';
+  let finalText = '';
+  let interim = '';
 
-  const transcriptEl = document.getElementById('transcript' + (lang === 'fr' ? 'Fr' : 'Es'));
-  
-  setStatus(lang, 'listening', lang === 'fr' ? '🎙 Écoute en français…' : '🎙 Escuchando en español…');
-  setActive(lang);
-  startWave(lang);
-  transcriptEl.classList.remove('empty');
+  recognizing = true;
+  setListeningUI(true);
+  setStatus('🎙  ÉCOUTE EN COURS…');
+  setSysStatus('MICROPHONE ACTIF');
 
   recognition.onresult = (event) => {
-    interimTranscript = '';
+    finalText = '';
+    interim = '';
     for (let i = event.resultIndex; i < event.results.length; i++) {
-      if (event.results[i].isFinal) {
-        finalTranscript += event.results[i][0].transcript + ' ';
-      } else {
-        interimTranscript = event.results[i][0].transcript;
-      }
+      if (event.results[i].isFinal) finalText += event.results[i][0].transcript;
+      else interim = event.results[i][0].transcript;
     }
-
-    transcriptEl.textContent = (finalTranscript + interimTranscript).trim() || (lang === 'fr' ? 'Parlez en français…' : 'Habla en español…');
+    const display = (finalText + interim).trim();
+    setStatus('🎙  ' + (display || 'ÉCOUTE…'));
     
-    // Reset silence timer on each word
     clearTimeout(silenceTimer);
-    if (finalTranscript.trim()) {
-      silenceTimer = setTimeout(() => processAndSwitch(finalTranscript.trim(), lang), SILENCE_DELAY);
-    }
-  };
-
-  recognition.onerror = (e) => {
-    if (e.error === 'no-speech') {
-      // Just restart if no speech detected
-      if (running && !isSpeaking) {
-        recognition.stop();
-      }
+    if (finalText.trim()) {
+      silenceTimer = setTimeout(() => {
+        processText(finalText.trim());
+      }, 1200);
     }
   };
 
   recognition.onend = () => {
-    stopWave(lang);
-    // Will be restarted by processAndSwitch or automatically
-    if (running && !isSpeaking && !finalTranscript.trim()) {
-      // No speech captured, just restart same lang
-      setTimeout(() => startRecognition(lang), 300);
+    recognizing = false;
+    setListeningUI(false);
+    if (!finalText.trim() && running && !speaking) {
+      // nothing captured, restart immediately
+      setTimeout(startListening, 300);
     }
+  };
+
+  recognition.onerror = (e) => {
+    if (e.error !== 'no-speech' && e.error !== 'aborted') {
+      setStatus('ERREUR: ' + e.error);
+    }
+    recognizing = false;
   };
 
   recognition.start();
 }
 
-async function processAndSwitch(text, spokenLang) {
+async function processText(text) {
   if (!running) return;
-  isSpeaking = true;
-  clearTimeout(silenceTimer);
+  speaking = true;
   
-  try {
-    recognition.stop();
-  } catch(e) {}
+  try { recognition && recognition.stop(); } catch(e) {}
+  clearTimeout(silenceTimer);
+  setListeningUI(false);
+  
+  const lang = detectLang(text);
+  const targetLang = lang === 'fr' ? 'es' : 'fr';
+  const flag = lang === 'fr' ? '🇫🇷' : '🇪🇸';
+  const targetFlag = lang === 'fr' ? '🇪🇸' : '🇫🇷';
 
-  stopWave(spokenLang);
+  setStatus(`⚙  ANALYSE ${flag} → ${targetFlag}`);
+  setSysStatus('TRADUCTION EN COURS');
 
-  const targetLang = spokenLang === 'fr' ? 'es' : 'fr';
-  const fromCode = spokenLang === 'fr' ? 'fr' : 'es';
-  const toCode = targetLang === 'fr' ? 'fr' : 'es';
+  const translated = await translate(text, lang, targetLang);
 
-  // Show translating status
-  setStatus(spokenLang, 'translating', spokenLang === 'fr' ? '⚙ Traduction…' : '⚙ Traduciendo…');
-
-  const translated = await translate(text, fromCode, toCode);
-
-  // Update UI
-  if (spokenLang === 'fr') {
-    document.getElementById('translationToEs').textContent = translated;
-    addHistory('fr', text, translated);
+  // Update panels
+  if (lang === 'fr') {
+    document.getElementById('origFr').textContent = text;
+    document.getElementById('transFr').textContent = translated;
+    document.getElementById('origEs').textContent = '—';
+    document.getElementById('transEs').textContent = '—';
+    flashPanel('fr');
   } else {
-    document.getElementById('translationToFr').textContent = translated;
-    addHistory('es', text, translated);
+    document.getElementById('origEs').textContent = text;
+    document.getElementById('transEs').textContent = translated;
+    document.getElementById('origFr').textContent = '—';
+    document.getElementById('transFr').textContent = '—';
+    flashPanel('es');
   }
 
-  // Speak the translation
-  setStatus(targetLang, 'speaking', targetLang === 'fr' ? '🔊 Lecture en français…' : '🔊 Leyendo en español…');
-  setActive(targetLang);
+  addHistory(targetFlag, text, translated);
+  
+  // Speak
+  setStatus(`🔊  LECTURE ${targetFlag}  —  ${translated.substring(0,40)}${translated.length>40?'…':''}`);
+  setSysStatus('SYNTHÈSE VOCALE');
 
   await speak(translated, targetLang);
 
-  // Reset UI
-  document.getElementById('transcript' + (spokenLang === 'fr' ? 'Fr' : 'Es')).textContent = '';
-  document.getElementById('transcript' + (spokenLang === 'fr' ? 'Fr' : 'Es')).classList.add('empty');
-  
-  setStatus(spokenLang, '', spokenLang === 'fr' ? 'En attente…' : 'Esperando…');
-  setStatus(targetLang, '', targetLang === 'fr' ? 'En attente…' : 'Esperando…');
-  resetActive();
+  speaking = false;
 
-  isSpeaking = false;
-
-  // Now switch to the other language
   if (running) {
-    const nextLang = targetLang; // After professor speaks → student listens, etc.
-    setTimeout(() => startRecognition(nextLang), 400);
+    setStatus('🎙  ÉCOUTE EN COURS…');
+    setSysStatus('MICROPHONE ACTIF');
+    setTimeout(startListening, 400);
   }
 }
 
-function addHistory(spokenLang, original, translated) {
-  const histId = spokenLang === 'fr' ? 'historyFr' : 'historyEs';
-  const hist = document.getElementById(histId);
-  const item = document.createElement('div');
-  item.className = 'hist-item ' + spokenLang;
-  item.innerHTML = `<div class="orig">${escapeHtml(original)}</div><div class="trans">${escapeHtml(translated)}</div>`;
-  hist.prepend(item);
-  // Keep only last 10
-  while (hist.children.length > 10) hist.removeChild(hist.lastChild);
-}
-
-function escapeHtml(str) {
-  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
-
-// ============================================================
-// START / STOP
-// ============================================================
-const startBtn = document.getElementById('startBtn');
-const btnIcon = document.getElementById('btnIcon');
-const btnLabel = document.getElementById('btnLabel');
-
-startBtn.addEventListener('click', () => {
+// ============ POWER BUTTON ============
+const powerBtn = document.getElementById('powerBtn');
+powerBtn.addEventListener('click', () => {
   if (!running) {
-    start();
+    if (!SpeechRecognition) {
+      setStatus('❌ NAVIGATEUR NON COMPATIBLE — UTILISEZ CHROME');
+      return;
+    }
+    running = true;
+    document.getElementById('powerIcon').textContent = '⏹';
+    document.getElementById('powerLabel').textContent = 'ARRÊTER';
+    document.getElementById('powerBtn').classList.add('active');
+    startListening();
   } else {
-    stop();
+    running = false;
+    speaking = false;
+    clearTimeout(silenceTimer);
+    try { recognition && recognition.stop(); } catch(e) {}
+    speechSynthesis && speechSynthesis.cancel();
+    setListeningUI(false);
+    recognizing = false;
+    setStatus('SYSTÈME ARRÊTÉ');
+    setSysStatus('VEILLE');
+    document.getElementById('powerIcon').textContent = '⏻';
+    document.getElementById('powerLabel').textContent = 'DÉMARRER';
+    document.getElementById('powerBtn').classList.remove('active');
   }
 });
-
-function start() {
-  if (!SpeechRecognition) {
-    document.getElementById('infoBanner').style.display = 'block';
-    return;
-  }
-  running = true;
-  startBtn.classList.add('active');
-  btnIcon.textContent = '⏹';
-  btnLabel.textContent = 'ARRÊTER';
-  
-  // Always start with French (professor)
-  currentLang = 'fr';
-  startRecognition('fr');
-}
-
-function stop() {
-  running = false;
-  isSpeaking = false;
-  clearTimeout(silenceTimer);
-  
-  try { recognition && recognition.stop(); } catch(e) {}
-  speechSynthesis && speechSynthesis.cancel();
-  
-  stopWave('fr');
-  stopWave('es');
-  
-  setStatus('fr', '', 'En attente…');
-  setStatus('es', '', 'Esperando…');
-  resetActive();
-
-  startBtn.classList.remove('active');
-  btnIcon.textContent = '▶';
-  btnLabel.textContent = 'DÉMARRER';
-}
 </script>
 
 </body>
