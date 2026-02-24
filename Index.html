@@ -618,18 +618,51 @@ async function translate(text, from, to) {
   return '[ERREUR DE TRADUCTION]';
 }
 
-// ============ TTS ============
+// ============ TTS — robuste avec Web Speech API ============
 function speak(text, lang) {
   return new Promise(resolve => {
-    if (!speechSynthesis) { resolve(); return; }
-    speechSynthesis.cancel();
-    const utt = new SpeechSynthesisUtterance(text);
-    utt.lang = lang === 'fr' ? 'fr-FR' : 'es-ES';
-    utt.rate = 0.95;
-    utt.pitch = 1;
-    utt.onend = resolve;
-    utt.onerror = resolve;
-    speechSynthesis.speak(utt);
+    const langCode = lang === 'fr' ? 'fr-FR' : 'es-ES';
+    let done = false;
+    const finish = () => { if (!done) { done = true; resolve(); } };
+
+    const doSpeak = () => {
+      window.speechSynthesis.cancel();
+      const utt = new SpeechSynthesisUtterance(text);
+      utt.lang = langCode;
+      utt.rate = 0.9;
+      utt.pitch = 1.0;
+      utt.volume = 1.0;
+
+      const voices = window.speechSynthesis.getVoices();
+      const voice = voices.find(v => v.lang === langCode)
+                 || voices.find(v => v.lang.startsWith(lang))
+                 || voices.find(v => v.lang.startsWith(lang === 'fr' ? 'fr' : 'es'))
+                 || null;
+      if (voice) utt.voice = voice;
+
+      utt.onend = finish;
+      utt.onerror = finish;
+      // Sécurité : timeout au cas où onend ne se déclenche pas
+      setTimeout(finish, Math.max(4000, text.length * 90));
+      window.speechSynthesis.speak(utt);
+
+      // Fix Chrome bug : speechSynthesis se coupe après ~15s
+      const keepAlive = setInterval(() => {
+        if (done) { clearInterval(keepAlive); return; }
+        if (window.speechSynthesis.paused) window.speechSynthesis.resume();
+      }, 5000);
+    };
+
+    if (window.speechSynthesis.getVoices().length > 0) {
+      doSpeak();
+    } else {
+      window.speechSynthesis.addEventListener('voiceschanged', function once() {
+        window.speechSynthesis.removeEventListener('voiceschanged', once);
+        doSpeak();
+      });
+      // Fallback si voiceschanged ne se déclenche jamais
+      setTimeout(doSpeak, 500);
+    }
   });
 }
 
