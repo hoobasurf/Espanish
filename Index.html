@@ -5,6 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>JARVIS · Translator</title>
+<script src="https://code.responsivevoice.org/responsivevoice.js?key=FREE"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap');
 
@@ -618,37 +619,33 @@ async function translate(text, from, to) {
   return '[ERREUR DE TRADUCTION]';
 }
 
-// ============ TTS — via <audio> + Google Translate (marche partout) ============
-const ttsAudio = new Audio();
-ttsAudio.crossOrigin = 'anonymous';
-
+// ============ TTS — ResponsiveVoice (CDN, gratuit, marche partout) ============
 function speak(text, lang) {
   return new Promise(resolve => {
-    const langCode = lang === 'fr' ? 'fr' : 'es';
-    // Découpe en morceaux de 200 chars max (limite Google TTS)
-    const chunks = [];
-    const words = text.split(' ');
-    let chunk = '';
-    for (const w of words) {
-      if ((chunk + ' ' + w).trim().length > 180) {
-        if (chunk) chunks.push(chunk.trim());
-        chunk = w;
-      } else {
-        chunk = (chunk + ' ' + w).trim();
-      }
+    const voiceName = lang === 'fr' ? 'French Female' : 'Spanish Female';
+    if (typeof responsiveVoice !== 'undefined') {
+      responsiveVoice.speak(text, voiceName, {
+        rate: 0.9,
+        pitch: 1,
+        volume: 1,
+        onend: resolve,
+        onerror: resolve
+      });
+      // sécurité timeout
+      setTimeout(resolve, Math.max(4000, text.length * 80));
+    } else {
+      // fallback Web Speech API
+      const utt = new SpeechSynthesisUtterance(text);
+      utt.lang = lang === 'fr' ? 'fr-FR' : 'es-ES';
+      utt.rate = 0.9;
+      utt.volume = 1;
+      let done = false;
+      const finish = () => { if (!done) { done = true; resolve(); } };
+      utt.onend = finish;
+      utt.onerror = finish;
+      setTimeout(finish, Math.max(4000, text.length * 80));
+      window.speechSynthesis.speak(utt);
     }
-    if (chunk) chunks.push(chunk.trim());
-
-    let idx = 0;
-    const playNext = () => {
-      if (idx >= chunks.length) { resolve(); return; }
-      const url = `https://translate.googleapis.com/translate_tts?ie=UTF-8&tl=${langCode}&client=gtx&q=${encodeURIComponent(chunks[idx])}`;
-      ttsAudio.src = url;
-      ttsAudio.onended = () => { idx++; playNext(); };
-      ttsAudio.onerror = () => { idx++; playNext(); };
-      ttsAudio.play().catch(() => { idx++; playNext(); });
-    };
-    playNext();
   });
 }
 // ============ HISTORY ============
@@ -791,7 +788,7 @@ powerBtn.addEventListener('click', () => {
     speaking = false;
     clearTimeout(silenceTimer);
     try { recognition && recognition.stop(); } catch(e) {}
-    ttsAudio.pause(); ttsAudio.src = '';
+    if (typeof responsiveVoice !== 'undefined') responsiveVoice.cancel(); else if (window.speechSynthesis) window.speechSynthesis.cancel();
     setListeningUI(false);
     recognizing = false;
     setStatus('SYSTÈME ARRÊTÉ');
