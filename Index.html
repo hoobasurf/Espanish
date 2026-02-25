@@ -618,54 +618,39 @@ async function translate(text, from, to) {
   return '[ERREUR DE TRADUCTION]';
 }
 
-// ============ TTS — robuste avec Web Speech API ============
+// ============ TTS — via <audio> + Google Translate (marche partout) ============
+const ttsAudio = new Audio();
+ttsAudio.crossOrigin = 'anonymous';
+
 function speak(text, lang) {
   return new Promise(resolve => {
-    const langCode = lang === 'fr' ? 'fr-FR' : 'es-ES';
-    let done = false;
-    const finish = () => { if (!done) { done = true; resolve(); } };
-
-    const doSpeak = () => {
-      window.speechSynthesis.cancel();
-      const utt = new SpeechSynthesisUtterance(text);
-      utt.lang = langCode;
-      utt.rate = 0.9;
-      utt.pitch = 1.0;
-      utt.volume = 1.0;
-
-      const voices = window.speechSynthesis.getVoices();
-      const voice = voices.find(v => v.lang === langCode)
-                 || voices.find(v => v.lang.startsWith(lang))
-                 || voices.find(v => v.lang.startsWith(lang === 'fr' ? 'fr' : 'es'))
-                 || null;
-      if (voice) utt.voice = voice;
-
-      utt.onend = finish;
-      utt.onerror = finish;
-      // Sécurité : timeout au cas où onend ne se déclenche pas
-      setTimeout(finish, Math.max(4000, text.length * 90));
-      window.speechSynthesis.speak(utt);
-
-      // Fix Chrome bug : speechSynthesis se coupe après ~15s
-      const keepAlive = setInterval(() => {
-        if (done) { clearInterval(keepAlive); return; }
-        if (window.speechSynthesis.paused) window.speechSynthesis.resume();
-      }, 5000);
-    };
-
-    if (window.speechSynthesis.getVoices().length > 0) {
-      doSpeak();
-    } else {
-      window.speechSynthesis.addEventListener('voiceschanged', function once() {
-        window.speechSynthesis.removeEventListener('voiceschanged', once);
-        doSpeak();
-      });
-      // Fallback si voiceschanged ne se déclenche jamais
-      setTimeout(doSpeak, 500);
+    const langCode = lang === 'fr' ? 'fr' : 'es';
+    // Découpe en morceaux de 200 chars max (limite Google TTS)
+    const chunks = [];
+    const words = text.split(' ');
+    let chunk = '';
+    for (const w of words) {
+      if ((chunk + ' ' + w).trim().length > 180) {
+        if (chunk) chunks.push(chunk.trim());
+        chunk = w;
+      } else {
+        chunk = (chunk + ' ' + w).trim();
+      }
     }
+    if (chunk) chunks.push(chunk.trim());
+
+    let idx = 0;
+    const playNext = () => {
+      if (idx >= chunks.length) { resolve(); return; }
+      const url = `https://translate.googleapis.com/translate_tts?ie=UTF-8&tl=${langCode}&client=gtx&q=${encodeURIComponent(chunks[idx])}`;
+      ttsAudio.src = url;
+      ttsAudio.onended = () => { idx++; playNext(); };
+      ttsAudio.onerror = () => { idx++; playNext(); };
+      ttsAudio.play().catch(() => { idx++; playNext(); });
+    };
+    playNext();
   });
 }
-
 // ============ HISTORY ============
 function addHistory(flag, orig, trans) {
   convCount++;
@@ -806,7 +791,7 @@ powerBtn.addEventListener('click', () => {
     speaking = false;
     clearTimeout(silenceTimer);
     try { recognition && recognition.stop(); } catch(e) {}
-    speechSynthesis && speechSynthesis.cancel();
+    ttsAudio.pause(); ttsAudio.src = '';
     setListeningUI(false);
     recognizing = false;
     setStatus('SYSTÈME ARRÊTÉ');
